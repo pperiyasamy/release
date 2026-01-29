@@ -16,6 +16,23 @@ unset KUBECONFIG
 oc adm policy add-role-to-group system:image-puller system:unauthenticated --namespace "${NAMESPACE}"
 export KUBECONFIG=$KUBECONFIG_BAK
 
+echo "shared directory: ${SHARED_DIR}"
+HYPERVISOR_IP=$(cat "${SHARED_DIR}/server-ip")
+export HYPERVISOR_IP
+export HYPERVISOR_SSH_USER="root"
+
+# Determine the correct SSH key path
+# Using equinix-ssh-key for ARM64 hosts or packet-ssh-key for others
+echo "cluster profile directory: ${CLUSTER_PROFILE_DIR}"
+if [[ -f "${CLUSTER_PROFILE_DIR}/equinix-ssh-key" ]]; then
+    export HYPERVISOR_SSH_KEY="${CLUSTER_PROFILE_DIR}/equinix-ssh-key"
+else
+    export HYPERVISOR_SSH_KEY="${CLUSTER_PROFILE_DIR}/packet-ssh-key"
+fi
+
+echo "sleep for 4h"
+sleep 4h
+
 # Starting in 4.21, we will aggressively retry test failures only in
 # presubmits to determine if a failure is a flake or legitimate. This is
 # to reduce the number of retests on PR's.
