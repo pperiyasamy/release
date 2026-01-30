@@ -44,13 +44,13 @@ function setup_vm_from_nested_container() {
     ssh-keygen -y -f ~/.ssh/id_rsa > ~/.ssh/id_rsa.pub
     chmod 644 ~/.ssh/id_rsa.pub
 
-    # Configure SSH client
-    cat > ~/.ssh/config <<'EOF'
+    # Configure SSH client - use the copied key with correct permissions
+    cat > ~/.ssh/config <<EOF
 Host hypervisor
     HostName ${HYPERVISOR_IP}
     User root
     ServerAliveInterval 120
-    IdentityFile ${HYPERVISOR_SSH_KEY}
+    IdentityFile ~/.ssh/id_rsa
 
 Host 192.168.122.*
     User root
@@ -58,10 +58,6 @@ Host 192.168.122.*
     UserKnownHostsFile /dev/null
     ProxyCommand ssh -W %h:%p hypervisor
 EOF
-
-    # Replace environment variable placeholders in SSH config
-    sed -i "s|\${HYPERVISOR_IP}|${HYPERVISOR_IP}|g" ~/.ssh/config
-    sed -i "s|\${HYPERVISOR_SSH_KEY}|${HYPERVISOR_SSH_KEY}|g" ~/.ssh/config
 
     # Configure kcli
     cat > ~/.kcli/config.yml <<'EOF'
@@ -120,8 +116,9 @@ if [[ "${CREATE_HYPERVISOR_VM:-false}" == "true" ]]; then
     podman run --network host --rm -i \
         "${PODMAN_ENV[@]}" \
         "${PODMAN_MOUNTS[@]}" \
+        --entrypoint /bin/bash \
         "quay.io/karmab/kcli" \
-        bash -c "$(declare -f setup_vm_from_nested_container); setup_vm_from_nested_container"
+        -c "$(declare -f setup_vm_from_nested_container); setup_vm_from_nested_container"
     echo "VM creation completed"
 else
     echo "Skipping VM creation (CREATE_HYPERVISOR_VM not set to 'true')"
